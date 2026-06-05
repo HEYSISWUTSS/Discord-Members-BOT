@@ -32,4 +32,4 @@ async def on_ready():
     for member in member_cache['members']:
         print(member.name)
 
-client.run('TOKEN')
+client.run(TOKEN)
