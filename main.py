@@ -1,35 +1,57 @@
 import os
 import discord
-from cachetools import TTLCache
-import asyncio
+from discord.ext import commands
 
 # Define all intents
 intents = discord.Intents.default()
 intents.members = True
+intents.message_content = True
 
-# Initialize the client object with all intents parameter
-client = discord.Client(intents=intents)
-
-
-member_cache = TTLCache(maxsize=1, ttl=300)  #This is a cache for 5 minutes to work with Discord's cache behaviour
+# Initialize the bot with command prefix
+bot = commands.Bot(command_prefix="!", intents=intents)
 
 TOKEN = os.environ.get("TOKEN", "your_bot_token_here")
+GUILD_ID = 1475204966607229081
 
-@client.event
+
+@bot.event
 async def on_ready():
-    guild = client.get_guild(1475204966607229081) # This is servers's ID (Rigth click on the server picture > Copy ID).
+    print(f"Bot logged in as {bot.user}")
+    print(f"Connected to guild: {GUILD_ID}")
+
+
+@bot.command(name="pull")
+async def pull(ctx, guild_id: int = None):
+    """Pull all members from a guild"""
+    if guild_id is None:
+        guild_id = GUILD_ID
+    
+    guild = bot.get_guild(guild_id)
     if guild is None:
-        print("Unable to find guild.")
+        await ctx.send(f"❌ Unable to find guild with ID: {guild_id}")
         return
+    
+    await ctx.send(f"📥 Pulling members from guild {guild_id}...")
+    
+    members = []
+    async for member in guild.fetch_members(limit=None):
+        members.append(member)
+    
+    await ctx.send(f"✅ Successfully pulled {len(members)} members from {guild.name}")
+    
+    # Print member list
+    member_list = "\n".join([f"  • {member.name}" for member in members[:10]])
+    if len(members) > 10:
+        member_list += f"\n  ... and {len(members) - 10} more"
+    
+    await ctx.send(f"```\n{member_list}\n```")
 
-    if 'members' not in member_cache:
-        members = []
-        async for member in guild.fetch_members(limit=None):
-            members.append(member)
-        member_cache['members'] = members
+
+@bot.command(name="auth")
+async def auth(ctx):
+    """Check bot authentication status"""
+    await ctx.send(f"✅ Bot is authenticated as **{bot.user}**\n🔐 Token is valid and active")
 
 
-    for member in member_cache['members']:
-        print(member.name)
+bot.run(TOKEN)
 
-client.run(TOKEN)
